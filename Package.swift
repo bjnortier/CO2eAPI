@@ -2,9 +2,9 @@
 import PackageDescription
 
 let package = Package(
-    name: "CO2eWeb",
+    name: "CO2eAPI",
     products: [
-        .library(name: "CO2eWeb", targets: ["App"]),
+        .library(name: "CO2eAPI", targets: ["App"]),
     ],
     dependencies: [
         .package(url: "https://github.com/vapor/vapor.git", from: "3.0.0"),
@@ -16,4 +16,3 @@ let package = Package(
         .testTarget(name: "AppTests", dependencies: ["App"])
     ]
 )
-
