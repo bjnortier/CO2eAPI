@@ -7,6 +7,10 @@ fileprivate struct CO2eRequest: Content {
     var cabin: String
 }
 
+fileprivate struct CO2eResponse: Content {
+    let kgCO2e: Double
+}
+
 /// Register your application's routes here.
 public func routes(_ router: Router) throws {
     router.get("airports", String.parameter) { req -> [Airport] in
@@ -16,21 +20,17 @@ public func routes(_ router: Router) throws {
         return airports
     }
     
-    struct CO2e: Content {
-        let kgCO2e: Double
-    }
-    
-    router.post("co2e") { req -> Future<CO2e> in
+    router.post("co2e") { req -> Future<CO2eResponse> in
         let db = try req.make(Connection.self)
         
-        return try req.content.decode(CO2eRequest.self).map(to: CO2e.self) { co2eRequest in
+        return try req.content.decode(CO2eRequest.self).map(to: CO2eResponse.self) { co2eRequest in
             guard ["economy", "business", "first"].contains(co2eRequest.cabin) else {
                 throw Abort(.badRequest, reason: "Invalid cabin")
             }
             
-            let a1 = try db.pluck(airports.filter(id == Int64(co2eRequest.from)))
-            let a2 = try db.pluck(airports.filter(id == Int64(co2eRequest.to)))
-            guard let fromRow = a1, let toRow = a2 else {
+            let fromRowOpt = try db.pluck(airports.filter(id == Int64(co2eRequest.from)))
+            let toRowOpt = try db.pluck(airports.filter(id == Int64(co2eRequest.to)))
+            guard let fromRow = fromRowOpt, let toRow = toRowOpt else {
                 throw Abort(.badRequest, reason: "Invalid Airport id(s)")
             }
             
@@ -38,7 +38,7 @@ public func routes(_ router: Router) throws {
             let to = Location(latitude: toRow[latitude], longitude: toRow[longitude])
             let cabin = Cabin.init(rawValue: co2eRequest.cabin)!
             
-            return CO2e(kgCO2e: flightCO2e(from, to, cabin: cabin))
+            return CO2eResponse(kgCO2e: flightCO2e(from, to, cabin: cabin))
         }
     }
 
