@@ -8,10 +8,11 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/vapor/vapor.git", from: "3.0.0"),
-        .package(url: "https://github.com/stephencelis/SQLite.swift.git", from: "0.12.0")
+        .package(url: "https://github.com/vapor/sqlite.git", from: "3.0.0"),
+        .package(url: "https://github.com/vapor/database-kit.git", from: "1.0.0")
     ],
     targets: [
-        .target(name: "App", dependencies: ["SQLite", "Vapor"]),
+        .target(name: "App", dependencies: ["DatabaseKit", "SQLite", "Vapor"]),
         .target(name: "Run", dependencies: ["App"]),
         .testTarget(name: "AppTests", dependencies: ["App"])
     ]

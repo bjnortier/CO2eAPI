@@ -38,35 +38,67 @@ public func routes(_ router: Router) throws {
 """)
         return res
     }
+    
+    struct SQLiteVersion: Codable {
+        let version: String
+    }
+    
+//    router.get("sql") { req in
+//        return req.withPooledConnection(to: .sqlite) { conn in
+//            return conn.select()
+//                .column(function: "sqlite_version", as: "version")
+//                .all(decoding: SQLiteVersion.self)
+//            }.map { rows in
+//                return rows[0].version
+//        }
+//    }
 
     router.post("airportsearch") { req -> Future<[Airport]> in
-        return try req.content.decode(AirportSearchRequest.self).map(to: [Airport].self) { airportSearchRequest in
+        let db = try req.make(DatabasesConfig.self)
+        print(db)
+        
+        req.withNewConnection(to: .sqlite) { conn in
+            print(c)
+        }
+        
+        let f1: EventLoopFuture<AirportSearchRequest> = try req.content.decode(AirportSearchRequest.self)
+        return f1.map(to: [Airport].self) { airportSearchRequest in
             let searcher = try req.make(AirportSearcher.self)
-            let airports = searcher.query(airportSearchRequest.input)
+            let airports = searcher.query(on: req, query: airportSearchRequest.input)
             return airports
         }
     }
+////                return req.withPooledConnection(to: .sqlite) { conn in
+//        return req.withNewConnection(to: .sqlite) { conn in
+//            return try req.content.decode(AirportSearchRequest.self).map(to: [Airport].self) { airportSearchRequest in
+//                let searcher = try req.make(AirportSearcher.self)
+//                let airports = searcher.query(conn: conn, query: airportSearchRequest.input)
+//                return airports
+//            }
+//        }
+//    }
     
-    router.post("co2e") { req -> Future<CO2eResponse> in
-        let db = try req.make(Connection.self)
-        
-        return try req.content.decode(CO2eRequest.self).map(to: CO2eResponse.self) { co2eRequest in
-            guard ["economy", "business", "first"].contains(co2eRequest.cabin) else {
-                throw Abort(.badRequest, reason: "Invalid cabin")
-            }
-            
-            let fromRowOpt = try db.pluck(airports.filter(id == Int64(co2eRequest.from)))
-            let toRowOpt = try db.pluck(airports.filter(id == Int64(co2eRequest.to)))
-            guard let fromRow = fromRowOpt, let toRow = toRowOpt else {
-                throw Abort(.badRequest, reason: "Invalid Airport id(s)")
-            }
-            
-            let from = Location(latitude: fromRow[latitude], longitude: fromRow[longitude])
-            let to = Location(latitude: toRow[latitude], longitude: toRow[longitude])
-            let cabin = Cabin.init(rawValue: co2eRequest.cabin)!
-            
-            return CO2eResponse(kgCO2e: flightCO2e(from, to, cabin: cabin))
-        }
-    }
+//    router.post("co2e") { req -> Future<CO2eResponse> in
+//        return req.withPooledConnection(to: .sqlite) { conn in
+//
+//            return try req.content.decode(CO2eRequest.self).map(to: CO2eResponse.self) { co2eRequest in
+//                guard ["economy", "business", "first"].contains(co2eRequest.cabin) else {
+//                    throw Abort(.badRequest, reason: "Invalid cabin")
+//                }
+//
+//                let fromRowOpt = try db.pluck(airports.filter(id == Int64(co2eRequest.from)))
+//                let toRowOpt = try db.pluck(airports.filter(id == Int64(co2eRequest.to)))
+//                guard let fromRow = fromRowOpt, let toRow = toRowOpt else {
+//                    throw Abort(.badRequest, reason: "Invalid Airport id(s)")
+//                }
+//
+//                let from = Location(latitude: fromRow[latitude], longitude: fromRow[longitude])
+//                let to = Location(latitude: toRow[latitude], longitude: toRow[longitude])
+//                let cabin = Cabin.init(rawValue: co2eRequest.cabin)!
+//
+//                return CO2eResponse(kgCO2e: flightCO2e(from, to, cabin: cabin))
+//            }
+//        }
+//    }
 
 }
