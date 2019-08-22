@@ -6,7 +6,7 @@ FROM swift:5.0 as builder
 ARG env
 
 RUN apt-get -qq update && apt-get install -y \
-  libssl-dev zlib1g-dev \
+  libssl-dev zlib1g-dev libsqlite3-dev \
   && rm -r /var/lib/apt/lists/*
 WORKDIR /app
 COPY . .
@@ -17,16 +17,16 @@ RUN swift build -c release && mv `swift build -c release --show-bin-path` /build
 FROM ubuntu:18.04
 ARG env
 # DEBIAN_FRONTEND=noninteractive for automatic UTC configuration in tzdata
-RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get install -y \ 
+RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
   libatomic1 libicu60 libxml2 libcurl4 libz-dev libbsd0 tzdata \
   && rm -r /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /build/bin/Run .
 COPY --from=builder /build/lib/* /usr/lib/
 # Uncomment the next line if you need to load resources from the `Public` directory
-#COPY --from=builder /app/Public ./Public
+COPY --from=builder /app/Public ./Public
 # Uncomment the next line if you are using Leaf
-#COPY --from=builder /app/Resources ./Resources
+COPY --from=builder /app/Resources ./Resources
 ENV ENVIRONMENT=$env
 
 ENTRYPOINT ./Run serve --env $ENVIRONMENT --hostname 0.0.0.0 --port 80
